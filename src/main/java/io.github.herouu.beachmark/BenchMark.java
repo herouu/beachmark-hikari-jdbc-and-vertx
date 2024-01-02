@@ -6,7 +6,6 @@ import com.github.jasync.sql.db.pool.ConnectionPool;
 import com.zaxxer.hikari.HikariDataSource;
 import io.vertx.core.Vertx;
 import io.vertx.sqlclient.Pool;
-import io.vertx.sqlclient.SqlClient;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
@@ -21,7 +20,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 
-@Threads(1)
+@Threads(5)
 @State(Scope.Thread)
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -30,18 +29,16 @@ import java.util.concurrent.TimeUnit;
 @Fork(value = 1, jvmArgs = {"-Xms6g", "-Xmx6g", "-Xmn6g"})
 public class BenchMark {
 
-    ConnectionPool<MySQLConnection> jasyncPool;
-    private SqlClient sqlClient;
-    private Pool init;
     private Vertx vertx;
+    private ConnectionPool<MySQLConnection> jasyncPool;
     private HikariDataSource hikariDataSource;
     private DruidDataSource druidDataSource;
+    private Pool vertxPool;
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
                 .include(BenchMark.class.getSimpleName())
-                .forks(1)
-                .result("result.json")
+                .result("result-5.json")
                 .resultFormat(ResultFormatType.JSON)
                 .build();
 
@@ -51,19 +48,19 @@ public class BenchMark {
     @Setup(Level.Trial)
     public void setup(BenchmarkParams params) {
         vertx = Vertx.vertx();
-        init = VertxBenchmark.init(vertx);
+        druidDataSource = DruidBenchmark.init();
+        vertxPool = VertxBenchmark.init(vertx);
         jasyncPool = JasyncSqlBenchmark.init();
         hikariDataSource = HikariCpBenchmark.init();
-        druidDataSource = DruidBenchmark.init();
     }
 
     @TearDown
     public void finish() {
-        vertx.close();
-        init.close();
         jasyncPool.disconnect();
         hikariDataSource.close();
         druidDataSource.close();
+        vertx.close();
+        vertxPool.close();
     }
 
     @Benchmark
@@ -77,14 +74,10 @@ public class BenchMark {
 
     @Benchmark
     public void druid(Blackhole bh) {
-        try {
-            DruidBenchmark.query(druidDataSource);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        DruidBenchmark.query(druidDataSource);
     }
 
-    // @Benchmark
+    @Benchmark
     public void jasyncSqlBenchmark() {
         try {
             JasyncSqlBenchmark.query(jasyncPool);
@@ -95,8 +88,14 @@ public class BenchMark {
         }
     }
 
-    // @Benchmark
+    @Benchmark
     public void vertx(Blackhole bh) {
-        VertxBenchmark.query(vertx, init);
+        try {
+            VertxBenchmark.query(vertxPool);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

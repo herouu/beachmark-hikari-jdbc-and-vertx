@@ -8,15 +8,19 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import static io.github.herouu.beachmark.BaseBenchmark.JDBC_URL;
+import static io.github.herouu.beachmark.BaseBenchmark.PASSWORD;
+import static io.github.herouu.beachmark.BaseBenchmark.USER_NAME;
+
 
 public class HikariCpBenchmark {
 
 
     public static HikariDataSource init() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://127.0.0.1:4406/test");
-        config.setUsername("root");
-        config.setPassword("123456");
+        config.setJdbcUrl(JDBC_URL);
+        config.setUsername(USER_NAME);
+        config.setPassword(PASSWORD);
         config.setMinimumIdle(10);
         return new HikariDataSource(config);
     }

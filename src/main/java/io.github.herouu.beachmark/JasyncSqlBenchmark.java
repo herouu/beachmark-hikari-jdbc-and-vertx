@@ -30,8 +30,9 @@ public class JasyncSqlBenchmark {
     }
 
     public static ConnectionPool<MySQLConnection> init() {
-        ConnectionPoolConfigurationBuilder builder = new ConnectionPoolConfigurationBuilder("127.0.0.1", 4406,
-                "test", "root", "123456");
+        ConnectionPoolConfigurationBuilder builder = new ConnectionPoolConfigurationBuilder(BaseBenchmark.HOST, BaseBenchmark.PORT,
+                BaseBenchmark.DB, BaseBenchmark.USER_NAME, BaseBenchmark.PASSWORD);
+
         builder.setMinIdleConnections(10);
         builder.setMaxActiveConnections(10);
         ConnectionPoolConfiguration build = builder.build();
